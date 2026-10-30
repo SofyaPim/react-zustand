@@ -26,6 +26,8 @@ export const useAppStore = create(
 
       // === НОВОЕ: Список задач ===
       tasks: [],
+      // Состояние текущего фильтра: 'all' | 'active' | 'done'
+      filter: "all",
 
       // Добавление задачи
       // СЛОМАННЫЙaddTask: мутируем старый массив вместо создания нового
@@ -78,7 +80,14 @@ export const useAppStore = create(
           undefined,
           "tasks/clearDone",
         ),
+         // Экшен для изменения фильтра
+    setFilter: (nextFilter) => set(
+      { filter: nextFilter },
+      undefined,
+      "filter/set"
+    ),
     }),
     { name: "counter" },
+    { name: "todo-store" }
   ),
 );

@@ -4,6 +4,7 @@ import { useAppStore } from "./store.js";
 import AddTaskForm from "./components/AddTaskForm";
 import TaskList from "./components/TaskList";
 import TaskStats from "./components/TaskStats";
+import FilterButtons from "./components/FilterButtons.jsx";
 
 // Компонент 1: Отображение счетчика
 const CounterDisplay = () => {
@@ -82,6 +83,7 @@ export default function App() {
       <AddTaskForm />
       <TaskList />
       <TaskStats />
+      <FilterButtons />
     </div>
   );
 }
