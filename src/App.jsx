@@ -5,6 +5,7 @@ import AddTaskForm from "./components/AddTaskForm";
 import TaskList from "./components/TaskList";
 import TaskStats from "./components/TaskStats";
 import FilterButtons from "./components/FilterButtons.jsx";
+import SettingsPanel from "./components/SettingsPanel.jsx";
 
 // Компонент 1: Отображение счетчика
 const CounterDisplay = () => {
@@ -19,11 +20,12 @@ const CounterDisplay = () => {
 // Компонент 2: Управление (+ и Сброс)
 const CounterControls = () => {
   const increment = useAppStore((state) => state.increment);
-  const reset = useAppStore((state) => state.reset);
+  const reset = useAppStore((state) => state.resetCounter);
   const setCount = useAppStore((state) => state.setCount); // Достаем новое действие
 
   return (
     <div style={{ marginBottom: "15px" }}>
+      <h3>Управление счётчиком</h3>
       <button onClick={increment} style={{ marginRight: "10px", padding: "5px 10px" }}>
         Прибавить
       </button>
@@ -37,7 +39,6 @@ const CounterControls = () => {
     </div>
   );
 };
-
 
 // Компонент 3: Выбор шага
 const StepSelector = () => {
@@ -78,8 +79,9 @@ export default function App() {
       <CounterControls />
       <StepSelector />
       <hr />
-      
+
       {/* 2. Наши новые независимые компоненты */}
+      <SettingsPanel />
       <AddTaskForm />
       <TaskList />
       <TaskStats />

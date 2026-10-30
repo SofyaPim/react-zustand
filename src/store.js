@@ -1,93 +1,193 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware"; // 1. Импортируем middleware
+import { devtools } from "zustand/middleware";
 
-// 2. Оборачиваем всю функцию в devtools(...)
+const initialState = {
+  count: 0,
+  step: 1,
+
+  tasks: [
+    { id: "task-1", title: "Подготовить макет", done: false },
+    { id: "task-2", title: "Проверить форму", done: true },
+  ],
+  filter: "all",
+
+  settings: {
+    showDone: true,
+    sort: "manual",
+  },
+
+  tags: new Set(["frontend", "urgent"]),
+  assignees: new Map([["task-1", "Анна"]]),
+  archived: [],
+};
+
 export const useAppStore = create(
   devtools(
-    (set) => ({
-      count: 0,
-      step: 1,
+    (set, get) => ({
+      ...initialState,
 
-      // Третий аргумент — имя экшена для панели отладки
-      increment: () => set((state) => ({ count: state.count + state.step }), undefined, "counter/increment"),
-
-      // НАМЕРЕННАЯ ОШИБКА: ставим 1 вместо 0, как просит задание
-      reset: () => set({ count: 0 }, undefined, "counter/reset"),
-
-      setStep: (nextStep) => set({ step: nextStep }, undefined, "counter/setStep"),
-
-      // Новое действие: принимает значение и записывает его имя + само значение
-      setCount: (value) =>
+      // Действия счётчика; resetCounter не конфликтует с reset всего стора.
+      increment: () =>
         set(
-          { count: value },
+          (state) => ({ count: state.count + state.step }),
           undefined,
-          { type: "counter/setCount", value }, // Передаем объект, чтобы видеть значение в панели!
+          "counter/increment",
         ),
-
-      // === НОВОЕ: Список задач ===
-      tasks: [],
-      // Состояние текущего фильтра: 'all' | 'active' | 'done'
-      filter: "all",
-
-      // Добавление задачи
-      // СЛОМАННЫЙaddTask: мутируем старый массив вместо создания нового
-      //  addTask: (title) => set(
-      //    (state) => {
-      //      // Напрямую добавляем элемент в существующий массив (мутация!)
-      //      state.tasks.push({ id: crypto.randomUUID(), title, done: false });
-      //      // Возвращаем тот же самый объект состояния
-      //      return state;
-      //    },
-      //    undefined,
-      //    "tasks/add"
-      //  ),
+      resetCounter: () => set({ count: 0 }, undefined, "counter/reset"),
+      setStep: (step) => set({ step }, undefined, "counter/setStep"),
 
       addTask: (title) =>
         set(
           (state) => ({
-            tasks: [...state.tasks, { id: crypto.randomUUID(), title, done: false }],
+            tasks: [
+              ...state.tasks,
+              { id: crypto.randomUUID(), title: title.trim(), done: false },
+            ],
           }),
           undefined,
           "tasks/add",
         ),
 
-      // Переключение чекбокса
+      // get() позволяет проверить актуальный стор до добавления задачи.
+      addUniqueTask: (title) => {
+        const normalizedTitle = title.trim();
+        if (!normalizedTitle) return false;
+
+        const alreadyExists = get().tasks.some(
+          (task) => task.title.toLowerCase() === normalizedTitle.toLowerCase(),
+        );
+
+        if (alreadyExists) return false;
+
+        get().addTask(normalizedTitle);
+        return true;
+      },
+
       toggleTask: (id) =>
         set(
           (state) => ({
-            tasks: state.tasks.map((task) => (task.id === id ? { ...task, done: !task.done } : task)),
+            tasks: state.tasks.map((task) =>
+              task.id === id ? { ...task, done: !task.done } : task,
+            ),
           }),
           undefined,
           "tasks/toggle",
         ),
 
-      // Удаление одной задачи
       removeTask: (id) =>
         set(
-          (state) => ({
-            tasks: state.tasks.filter((task) => task.id !== id),
-          }),
+          (state) => ({ tasks: state.tasks.filter((task) => task.id !== id) }),
           undefined,
           "tasks/remove",
         ),
 
-      // Очистка всех выполненных задач
       clearDone: () =>
+        set(
+          (state) => ({ tasks: state.tasks.filter((task) => !task.done) }),
+          undefined,
+          "tasks/clearDone",
+        ),
+
+      setFilter: (nextFilter) =>
+        set(
+          (state) =>
+            state.filter === nextFilter ? state : { filter: nextFilter },
+          undefined,
+          "filter/set",
+        ),
+
+      toggleShowDone: () =>
+        set(
+          (state) => ({
+            // Обновляем вложенный объект иммутабельно и сохраняем sort.
+            settings: {
+              ...state.settings,
+              showDone: !state.settings.showDone,
+            },
+          }),
+          undefined,
+          "settings/toggleShowDone",
+        ),
+
+      setSort: (sort) =>
+        set(
+          (state) => ({
+            settings: { ...state.settings, sort },
+          }),
+          undefined,
+          "settings/setSort",
+        ),
+
+      toggleTag: (tag) =>
+        set(
+          (state) => {
+            const tags = new Set(state.tags);
+
+            if (tags.has(tag)) tags.delete(tag);
+            else tags.add(tag);
+
+            return { tags };
+          },
+          undefined,
+          "tags/toggle",
+        ),
+
+      assignTask: (taskId, name) =>
+        set(
+          (state) => {
+            const assignees = new Map(state.assignees);
+
+            if (name) assignees.set(taskId, name);
+            else assignees.delete(taskId);
+
+            return { assignees };
+          },
+          undefined,
+          "tasks/assign",
+        ),
+
+      sortByTitle: () =>
+        set(
+          (state) => ({
+            // toSorted создаёт новый массив, не меняя state.tasks.
+            tasks: state.tasks.toSorted((a, b) =>
+              a.title.localeCompare(b.title),
+            ),
+          }),
+          undefined,
+          "tasks/sortByTitle",
+        ),
+
+      archiveDone: () => {
+        // Это два отдельных обновления стора.
+        set(
+          (state) => ({
+            archived: [
+              ...state.archived,
+              ...state.tasks.filter((task) => task.done),
+            ],
+          }),
+          undefined,
+          "tasks/archiveDone/add",
+        );
+
         set(
           (state) => ({
             tasks: state.tasks.filter((task) => !task.done),
           }),
           undefined,
-          "tasks/clearDone",
-        ),
-         // Экшен для изменения фильтра
-    setFilter: (nextFilter) => set(
-      { filter: nextFilter },
-      undefined,
-      "filter/set"
-    ),
+          "tasks/archiveDone/remove",
+        );
+      },
+
+      // set с replace=false сохраняет действия, уже находящиеся в сторе.
+      reset: () => set(initialState, false, "app/reset"),
+
+      // Только для опыта: этот вызов заменит весь стор данными initialState.
+      // После него действия, включая resetWithReplace, исчезнут.
+      resetWithReplace: () =>
+        set(initialState, true, "app/resetWithReplace"),
     }),
-    { name: "counter" },
-    { name: "todo-store" }
+    { name: "todo-store" },
   ),
 );
