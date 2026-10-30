@@ -24,6 +24,7 @@ const SettingsPanel = () => {
       <label>
         <input
           // checked делает checkbox управляемым React: его состояние берётся из стора, а не хранится внутри DOM.
+          type="checkbox"
           checked={showDone}
           // При изменении вызывается действие из Zustand.
           onChange={toggleShowDone}
