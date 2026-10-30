@@ -1,6 +1,10 @@
 import React from "react";
 import { useAppStore } from "./store.js";
 
+import AddTaskForm from "./components/AddTaskForm";
+import TaskList from "./components/TaskList";
+import TaskStats from "./components/TaskStats";
+
 // Компонент 1: Отображение счетчика
 const CounterDisplay = () => {
   const count = useAppStore((state) => state.count);
@@ -72,6 +76,12 @@ export default function App() {
       <CounterDisplay />
       <CounterControls />
       <StepSelector />
+      <hr />
+      
+      {/* 2. Наши новые независимые компоненты */}
+      <AddTaskForm />
+      <TaskList />
+      <TaskStats />
     </div>
   );
 }
